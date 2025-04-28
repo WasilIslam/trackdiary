@@ -133,13 +133,7 @@ export default function Profile() {
     <>
       <Header />
       <div className={styles.container}>
-        <SafeWiredCard
-          elevation={3}
-          className={styles.profileCard}
-          fallback={
-            <div className={styles.cardFallback}>Loading profile...</div>
-          }
-        >
+        <SafeWiredCard elevation={3} className={styles.profileCard}>
           <h1 className={styles.title}>Your Profile</h1>
 
           <div className={styles.profileInfo}>
@@ -179,7 +173,6 @@ export default function Profile() {
                 placeholder="Your name"
                 className={styles.input}
                 disabled={saving}
-                fallback={<div className={styles.inputFallback}></div>}
               />
             </div>
 
@@ -195,7 +188,6 @@ export default function Profile() {
                 placeholder="Your phone number"
                 className={styles.input}
                 disabled={saving}
-                fallback={<div className={styles.inputFallback}></div>}
               />
             </div>
 
@@ -204,9 +196,6 @@ export default function Profile() {
                 type="submit"
                 className={styles.saveButton}
                 onClick={handleSubmit}
-                fallback={
-                  <div className={styles.buttonFallback}>Save Changes</div>
-                }
               >
                 {saving ? "Saving..." : "Save Changes"}
               </SafeWiredButton>

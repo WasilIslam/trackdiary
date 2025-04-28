@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { signInWithGoogle, auth } from "../firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import styles from "./login.module.css";
-import { WiredCard, WiredButton, WiredDivider } from "wired-elements-react";
+import SafeWiredCard from "../components/SafeWiredCard";
+import SafeWiredButton from "../components/SafeWiredButton";
+import SafeWiredDivider from "../components/SafeWiredDivider";
 import WiredLoading from "../components/WiredLoading";
 
 export default function Login() {
@@ -67,9 +69,9 @@ export default function Login() {
 
   return (
     <div className={styles.container}>
-      <WiredCard elevation={3} className={styles.loginCard}>
+      <SafeWiredCard elevation={3} className={styles.loginCard}>
         <h1 className={styles.title}>Track Daily</h1>
-        <WiredDivider />
+        <SafeWiredDivider />
 
         <div className={styles.content}>
           <p className={styles.description}>
@@ -80,14 +82,14 @@ export default function Login() {
               <p className={styles.error}>{authState.error}</p>
             </div>
           )}
-          <WiredButton
+          <SafeWiredButton
             className={styles.googleButton}
             onClick={handleGoogleSignIn}
           >
             {authState.isSigningIn ? "Signing in..." : "Sign in with Google"}
-          </WiredButton>
+          </SafeWiredButton>
         </div>
-      </WiredCard>
+      </SafeWiredCard>
     </div>
   );
 }

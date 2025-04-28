@@ -18,21 +18,19 @@ export default function WiredLoading({ message = "Loading..." }) {
 
   const loadingText = `${message}${".".repeat(dots)}`;
 
+  const fallbackContent = (
+    <div className={styles.fallbackLoading}>
+      <div className={styles.fallbackCard}>
+        <h2 className={styles.loadingTitle}>Track Daily</h2>
+        <div className={styles.spinner}></div>
+        <p className={styles.loadingMessage}>{loadingText}</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.loadingContainer}>
-      <SafeWiredCard
-        elevation={3}
-        className={styles.loadingCard}
-        fallback={
-          <div className={styles.fallbackCard}>
-            <div className={styles.loadingContent}>
-              <h2 className={styles.loadingTitle}>Track Daily</h2>
-              <div className={styles.spinner}></div>
-              <p className={styles.loadingMessage}>{loadingText}</p>
-            </div>
-          </div>
-        }
-      >
+      <SafeWiredCard elevation={3} className={styles.loadingCard}>
         <div className={styles.loadingContent}>
           <h2 className={styles.loadingTitle}>Track Daily</h2>
           <div className={styles.spinner}></div>
