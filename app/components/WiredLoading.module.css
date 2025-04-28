@@ -1,0 +1,172 @@
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 1rem;
+}
+
+.loadingCard {
+  width: 100%;
+  max-width: 300px;
+  padding: 2rem;
+  --wired-card-background-color: white;
+}
+
+.loadingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingTitle {
+  font-family: var(--font-caveat);
+  font-size: 2.5rem;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.loadingMessage {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-family: var(--font-geist-sans);
+  color: #555;
+  min-height: 1.5em;
+}
+
+.fallbackLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: var(--font-geist-sans);
+  font-size: 1.2rem;
+  color: #555;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Notebook and pencil animation */
+.notebookContainer {
+  position: relative;
+  height: 150px;
+  margin: 1rem 0;
+}
+
+.notebook {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #f9f9f9;
+  border: 2px solid #333;
+  border-radius: 5px;
+  padding: 20px;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.notebookLine {
+  height: 2px;
+  width: 100%;
+  background-color: #ccc;
+  margin: 25px 0;
+}
+
+.pencilContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+}
+
+.pencilLine {
+  height: 2px;
+  background-color: #555;
+  margin: 25px 0;
+  width: 0;
+  transition: width 0.8s ease-in-out;
+}
+
+.pencilLine.drawn {
+  width: 70%;
+}
+
+.pencil {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 120px;
+  height: 15px;
+  transform: rotate(-10deg);
+  transform-origin: right center;
+  animation: writingMotion 2.5s infinite;
+}
+
+.pencilBody {
+  position: absolute;
+  top: 0;
+  left: 15px;
+  width: 90px;
+  height: 15px;
+  background-color: #ffcc00;
+  border: 1px solid #333;
+}
+
+.pencilTip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-top: 7.5px solid transparent;
+  border-bottom: 7.5px solid transparent;
+  border-right: 15px solid #333;
+}
+
+.pencilEraser {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  background-color: #ff6b6b;
+  border: 1px solid #333;
+  border-radius: 2px;
+}
+
+@keyframes writingMotion {
+  0%,
+  100% {
+    transform: rotate(-10deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-10deg) translateY(25px);
+  }
+  50% {
+    transform: rotate(-10deg) translateY(50px);
+  }
+  75% {
+    transform: rotate(-10deg) translateY(75px);
+  }
+}

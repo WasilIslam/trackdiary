@@ -1,0 +1,149 @@
+.container {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 70px);
+}
+
+.profileCard {
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem;
+  --wired-card-background-color: white;
+}
+
+.title {
+  font-family: var(--font-caveat);
+  font-size: 2.5rem;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  color: #333;
+  text-align: center;
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.profilePic {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  margin-right: 1.5rem;
+  border: 2px solid #eaeaea;
+}
+
+.emailDisplay {
+  flex: 1;
+}
+
+.label {
+  font-family: var(--font-geist-sans);
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.email {
+  font-family: var(--font-geist-sans);
+  font-size: 1.1rem;
+  color: #333;
+  margin: 0;
+}
+
+.form {
+  margin-top: 1.5rem;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.input {
+  width: 100%;
+  font-family: var(--font-geist-sans);
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  min-height: 50px;
+}
+
+.saveButton {
+  --wired-button-background-color: #4285f4;
+  --wired-button-color: white;
+  padding: 10px 20px;
+  font-family: var(--font-geist-sans);
+}
+
+.messageContainer {
+  padding: 12px;
+  border-radius: 4px;
+  margin: 1rem 0;
+  transition: all 0.3s ease;
+}
+
+.messageText {
+  font-family: var(--font-geist-sans);
+  text-align: center;
+  margin: 0;
+}
+
+.success {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.success .messageText {
+  color: #155724;
+}
+
+.error {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.error .messageText {
+  color: #721c24;
+}
+
+.savingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.miniSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(66, 133, 244, 0.2);
+  border-top: 2px solid #4285f4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+.savingText {
+  font-family: var(--font-geist-sans);
+  color: #4285f4;
+  font-size: 0.9rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

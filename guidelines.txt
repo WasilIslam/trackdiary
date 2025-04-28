@@ -1,0 +1,9 @@
+Use custom css without any css libary
+
+Use wired-elements for design
+
+Use a bit modular structure
+
+This is a nextjs 15 project
+
+Use firebase functions smoothly
