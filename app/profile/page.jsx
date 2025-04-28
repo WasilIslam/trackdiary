@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, getUserData, updateUserProfile } from "../firebase/auth";
-import { WiredCard, WiredInput, WiredButton } from "wired-elements-react";
+import SafeWiredCard from "../components/SafeWiredCard";
+import SafeWiredInput from "../components/SafeWiredInput";
+import SafeWiredButton from "../components/SafeWiredButton";
 import Header from "../components/Header";
 import WiredLoading from "../components/WiredLoading";
 import styles from "./profile.module.css";
@@ -131,7 +133,13 @@ export default function Profile() {
     <>
       <Header />
       <div className={styles.container}>
-        <WiredCard elevation={3} className={styles.profileCard}>
+        <SafeWiredCard
+          elevation={3}
+          className={styles.profileCard}
+          fallback={
+            <div className={styles.cardFallback}>Loading profile...</div>
+          }
+        >
           <h1 className={styles.title}>Your Profile</h1>
 
           <div className={styles.profileInfo}>
@@ -163,7 +171,7 @@ export default function Profile() {
               <label htmlFor="displayName" className={styles.label}>
                 Name
               </label>
-              <WiredInput
+              <SafeWiredInput
                 id="displayName"
                 name="displayName"
                 value={formData.displayName}
@@ -171,6 +179,7 @@ export default function Profile() {
                 placeholder="Your name"
                 className={styles.input}
                 disabled={saving}
+                fallback={<div className={styles.inputFallback}></div>}
               />
             </div>
 
@@ -178,7 +187,7 @@ export default function Profile() {
               <label htmlFor="phone" className={styles.label}>
                 Phone
               </label>
-              <WiredInput
+              <SafeWiredInput
                 id="phone"
                 name="phone"
                 value={formData.phone}
@@ -186,16 +195,24 @@ export default function Profile() {
                 placeholder="Your phone number"
                 className={styles.input}
                 disabled={saving}
+                fallback={<div className={styles.inputFallback}></div>}
               />
             </div>
 
-            <div className={styles.buttonContainer} onClick={handleSubmit}>
-              <WiredButton type="submit" className={styles.saveButton}>
+            <div className={styles.buttonContainer}>
+              <SafeWiredButton
+                type="submit"
+                className={styles.saveButton}
+                onClick={handleSubmit}
+                fallback={
+                  <div className={styles.buttonFallback}>Save Changes</div>
+                }
+              >
                 {saving ? "Saving..." : "Save Changes"}
-              </WiredButton>
+              </SafeWiredButton>
             </div>
           </form>
-        </WiredCard>
+        </SafeWiredCard>
       </div>
     </>
   );

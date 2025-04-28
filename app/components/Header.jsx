@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth, signOut } from "../firebase/auth";
-import { WiredCard } from "wired-elements-react";
+import SafeWiredCard from "./SafeWiredCard";
 import styles from "./Header.module.css";
 import Link from "next/link";
 
@@ -68,7 +68,7 @@ export default function Header() {
           ></div>
 
           {dropdownOpen && (
-            <WiredCard className={styles.dropdown} elevation={2}>
+            <SafeWiredCard className={styles.dropdown} elevation={2}>
               <ul className={styles.dropdownMenu}>
                 <li className={styles.dropdownItem}>
                   <Link href="/profile">Profile</Link>
@@ -82,7 +82,7 @@ export default function Header() {
                   </button>
                 </li>
               </ul>
-            </WiredCard>
+            </SafeWiredCard>
           )}
         </div>
       )}
