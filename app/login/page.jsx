@@ -5,30 +5,24 @@ import { useRouter } from "next/navigation";
 import { signInWithGoogle, auth } from "../firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import styles from "./login.module.css";
-import SafeWiredCard from "../components/SafeWiredCard";
-import SafeWiredButton from "../components/SafeWiredButton";
-import SafeWiredDivider from "../components/SafeWiredDivider";
-import WiredLoading from "../components/WiredLoading";
+import Loading from "../components/Loading";
 
 export default function Login() {
   const [authState, setAuthState] = useState({
-    isLoading: true, // Initial loading while checking auth
-    isSigningIn: false, // When actively signing in
-    error: null, // Any auth errors
+    isLoading: true,
+    isSigningIn: false,
+    error: null,
   });
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // Mark component as mounted
     setMounted(true);
 
-    // Check if user is already logged in
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        router.push("/write"); // Redirect to write page if logged in
+        router.push("/write");
       } else {
-        // User is not logged in, ready to show login UI
         setAuthState((prev) => ({ ...prev, isLoading: false }));
       }
     });
@@ -37,7 +31,6 @@ export default function Login() {
   }, [router]);
 
   const handleGoogleSignIn = async () => {
-    // Update state to show signing in
     setAuthState((prev) => ({
       ...prev,
       isSigningIn: true,
@@ -47,9 +40,7 @@ export default function Login() {
     try {
       const result = await signInWithGoogle();
 
-      if (result.success) {
-        // Success - router.push will happen in the onAuthStateChanged listener
-      } else {
+      if (!result.success) {
         throw new Error(result.error || "Failed to sign in with Google");
       }
     } catch (err) {
@@ -62,16 +53,15 @@ export default function Login() {
     }
   };
 
-  // Show loading while component is mounting or checking auth
   if (!mounted || authState.isLoading) {
-    return <WiredLoading message="Checking authentication status..." />;
+    return <Loading message="Checking authentication status..." />;
   }
 
   return (
     <div className={styles.container}>
-      <SafeWiredCard elevation={3} className={styles.loginCard}>
-        <h1 className={styles.title}>Track Daily</h1>
-        <SafeWiredDivider />
+      <div className={styles.loginCard}>
+        <h1 className={styles.title}>TRACK DAILY</h1>
+        <div className={styles.divider}></div>
 
         <div className={styles.content}>
           <p className={styles.description}>
@@ -82,14 +72,15 @@ export default function Login() {
               <p className={styles.error}>{authState.error}</p>
             </div>
           )}
-          <SafeWiredButton
+          <button
             className={styles.googleButton}
             onClick={handleGoogleSignIn}
+            disabled={authState.isSigningIn}
           >
-            {authState.isSigningIn ? "Signing in..." : "Sign in with Google"}
-          </SafeWiredButton>
+            {authState.isSigningIn ? "SIGNING IN..." : "SIGN IN WITH GOOGLE"}
+          </button>
         </div>
-      </SafeWiredCard>
+      </div>
     </div>
   );
 }

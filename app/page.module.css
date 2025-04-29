@@ -1,0 +1,62 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background-color: #f0f0f0;
+}
+
+.card {
+  width: 100%;
+  max-width: 600px;
+  background-color: white;
+  border: 3px solid black;
+  padding: 3rem 2rem;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.9);
+  text-align: center;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 900;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: black;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.description {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.loginButton {
+  background-color: black;
+  color: white;
+  border: 3px solid black;
+  padding: 1rem 2rem;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.loginButton:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
+}
+
+.loginButton:active {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+.redirectMessage {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}

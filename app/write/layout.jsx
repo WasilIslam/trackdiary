@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "../firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import Header from "../components/Header";
-import WiredLoading from "../components/WiredLoading";
+import Loading from "../components/Loading";
 
 export default function WriteLayout({ children }) {
   const [user, setUser] = useState(null);
@@ -30,7 +30,7 @@ export default function WriteLayout({ children }) {
   }, [router]);
 
   if (loading || !mounted) {
-    return <WiredLoading message="Loading your workspace..." />;
+    return <Loading message="Loading your workspace..." />;
   }
 
   return (

@@ -3,11 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, getUserData, updateUserProfile } from "../firebase/auth";
-import SafeWiredCard from "../components/SafeWiredCard";
-import SafeWiredInput from "../components/SafeWiredInput";
-import SafeWiredButton from "../components/SafeWiredButton";
 import Header from "../components/Header";
-import WiredLoading from "../components/WiredLoading";
+import Loading from "../components/Loading";
 import styles from "./profile.module.css";
 
 export default function Profile() {
@@ -91,7 +88,6 @@ export default function Profile() {
       });
 
       if (result.success) {
-        // Update local state
         setUserData((prev) => ({
           ...prev,
           displayName: formData.displayName,
@@ -103,7 +99,6 @@ export default function Profile() {
           type: "success",
         });
 
-        // Clear success message after 3 seconds
         setTimeout(() => {
           setMessage({ text: "", type: "" });
         }, 3000);
@@ -122,19 +117,19 @@ export default function Profile() {
   };
 
   if (!mounted) {
-    return <WiredLoading message="Initializing profile..." />;
+    return <Loading message="Initializing profile..." />;
   }
 
   if (loading) {
-    return <WiredLoading message="Loading your profile data..." />;
+    return <Loading message="Loading your profile data..." />;
   }
 
   return (
     <>
       <Header />
       <div className={styles.container}>
-        <SafeWiredCard elevation={3} className={styles.profileCard}>
-          <h1 className={styles.title}>Your Profile</h1>
+        <div className={styles.profileCard}>
+          <h1 className={styles.title}>YOUR PROFILE</h1>
 
           <div className={styles.profileInfo}>
             <div
@@ -147,7 +142,7 @@ export default function Profile() {
             ></div>
 
             <div className={styles.emailDisplay}>
-              <p className={styles.label}>Email</p>
+              <p className={styles.label}>EMAIL</p>
               <p className={styles.email}>{user?.email}</p>
             </div>
           </div>
@@ -163,9 +158,9 @@ export default function Profile() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
               <label htmlFor="displayName" className={styles.label}>
-                Name
+                NAME
               </label>
-              <SafeWiredInput
+              <input
                 id="displayName"
                 name="displayName"
                 value={formData.displayName}
@@ -178,9 +173,9 @@ export default function Profile() {
 
             <div className={styles.formGroup}>
               <label htmlFor="phone" className={styles.label}>
-                Phone
+                PHONE
               </label>
-              <SafeWiredInput
+              <input
                 id="phone"
                 name="phone"
                 value={formData.phone}
@@ -192,16 +187,16 @@ export default function Profile() {
             </div>
 
             <div className={styles.buttonContainer}>
-              <SafeWiredButton
+              <button
                 type="submit"
                 className={styles.saveButton}
-                onClick={handleSubmit}
+                disabled={saving}
               >
-                {saving ? "Saving..." : "Save Changes"}
-              </SafeWiredButton>
+                {saving ? "SAVING..." : "SAVE CHANGES"}
+              </button>
             </div>
           </form>
-        </SafeWiredCard>
+        </div>
       </div>
     </>
   );

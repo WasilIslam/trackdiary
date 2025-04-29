@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth, signOut } from "../firebase/auth";
-import SafeWiredCard from "./SafeWiredCard";
 import styles from "./Header.module.css";
 import Link from "next/link";
 
@@ -54,7 +53,7 @@ export default function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
-        <Link href="/write">Track Daily</Link>
+        <Link href="/write">TRACK DAILY</Link>
       </div>
 
       {user && (
@@ -68,21 +67,21 @@ export default function Header() {
           ></div>
 
           {dropdownOpen && (
-            <SafeWiredCard className={styles.dropdown} elevation={2}>
+            <div className={styles.dropdown}>
               <ul className={styles.dropdownMenu}>
                 <li className={styles.dropdownItem}>
-                  <Link href="/profile">Profile</Link>
+                  <Link href="/profile">PROFILE</Link>
                 </li>
                 <li className={styles.dropdownItem}>
                   <button
                     onClick={handleLogout}
                     className={styles.logoutButton}
                   >
-                    Logout
+                    LOGOUT
                   </button>
                 </li>
               </ul>
-            </SafeWiredCard>
+            </div>
           )}
         </div>
       )}

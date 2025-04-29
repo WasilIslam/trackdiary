@@ -2,7 +2,7 @@
   display: flex;
   justify-content: center;
   padding: 2rem 1rem;
-  background-color: #f5f5f5;
+  background-color: #f0f0f0;
   min-height: calc(100vh - 70px);
 }
 
@@ -10,7 +10,9 @@
   width: 100%;
   max-width: 600px;
   padding: 2rem;
-  --wired-card-background-color: white;
+  background-color: white;
+  border: 3px solid black;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.9);
 }
 
 .title {
@@ -18,8 +20,10 @@
   font-size: 2.5rem;
   margin-top: 0;
   margin-bottom: 2rem;
-  color: #333;
+  color: black;
   text-align: center;
+  border-bottom: 3px solid black;
+  padding-bottom: 0.5rem;
 }
 
 .profileInfo {
@@ -27,17 +31,17 @@
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 3px solid black;
 }
 
 .profilePic {
   width: 80px;
   height: 80px;
-  border-radius: 50%;
+  border-radius: 0;
   background-size: cover;
   background-position: center;
   margin-right: 1.5rem;
-  border: 2px solid #eaeaea;
+  border: 3px solid black;
 }
 
 .emailDisplay {
@@ -47,15 +51,16 @@
 .label {
   font-family: var(--font-geist-sans);
   font-size: 0.9rem;
-  color: #666;
+  color: black;
   margin-bottom: 0.5rem;
   display: block;
+  font-weight: bold;
 }
 
 .email {
   font-family: var(--font-geist-sans);
   font-size: 1.1rem;
-  color: #333;
+  color: black;
   margin: 0;
 }
 
@@ -70,80 +75,76 @@
 .input {
   width: 100%;
   font-family: var(--font-geist-sans);
+  padding: 0.8rem;
+  border: 3px solid black;
+  font-size: 1rem;
+}
+
+.input:focus {
+  outline: none;
+  background-color: #ffffd9;
 }
 
 .buttonContainer {
   display: flex;
   justify-content: flex-end;
   margin-top: 2rem;
-  min-height: 50px;
 }
 
 .saveButton {
-  --wired-button-background-color: #4285f4;
-  --wired-button-color: white;
-  padding: 10px 20px;
+  background-color: black;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
   font-family: var(--font-geist-sans);
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.saveButton:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.saveButton:active:not(:disabled) {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+.saveButton:disabled {
+  background-color: #666;
+  cursor: not-allowed;
 }
 
 .messageContainer {
   padding: 12px;
-  border-radius: 4px;
   margin: 1rem 0;
-  transition: all 0.3s ease;
+  border: 3px solid;
 }
 
 .messageText {
   font-family: var(--font-geist-sans);
   text-align: center;
   margin: 0;
+  font-weight: bold;
 }
 
 .success {
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
+  border-color: #00aa00;
+  background-color: white;
 }
 
 .success .messageText {
-  color: #155724;
+  color: #00aa00;
 }
 
 .error {
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  border-color: #ff0000;
+  background-color: white;
 }
 
 .error .messageText {
-  color: #721c24;
-}
-
-.savingContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.miniSpinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(66, 133, 244, 0.2);
-  border-top: 2px solid #4285f4;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 10px;
-}
-
-.savingText {
-  font-family: var(--font-geist-sans);
-  color: #4285f4;
-  font-size: 0.9rem;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  color: #ff0000;
 }
