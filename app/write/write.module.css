@@ -4,13 +4,11 @@
   align-items: flex-start;
   min-height: calc(100vh - 70px); /* Adjust for header height */
   padding: 2rem 1rem;
-  background-color: #f0f0f0;
 }
 
 .card {
   width: 100%;
   max-width: 800px;
-  background-color: white;
   border: 3px solid black;
   padding: 2rem;
   box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.9);

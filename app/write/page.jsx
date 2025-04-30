@@ -646,7 +646,7 @@ const WritePage = () => {
             }`}
             onClick={() => setMonthViewTab("graphs")}
           >
-            Monthly Graphs
+            Graph View
           </button>
         </div>
 
@@ -918,7 +918,7 @@ const WritePage = () => {
             }`}
             onClick={() => setActiveTab("entry")}
           >
-            DAILY ENTRY
+            Entry
           </button>
           <button
             className={`${styles.tab} ${
@@ -941,7 +941,7 @@ const WritePage = () => {
                 }`}
                 onClick={() => setViewMode("single")}
               >
-                Single Day
+                Day View
               </button>
               <button
                 className={`${styles.viewToggleButton} ${
