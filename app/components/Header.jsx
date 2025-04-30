@@ -53,7 +53,7 @@ export default function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
-        <Link href="/write">TRACK DAILY</Link>
+        <Link href="/write">📒 Track Diary</Link>
       </div>
 
       {user && (

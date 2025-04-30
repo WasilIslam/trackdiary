@@ -60,7 +60,7 @@ export default function Login() {
   return (
     <div className={styles.container}>
       <div className={styles.loginCard}>
-        <h1 className={styles.title}>TRACK DAILY</h1>
+        <h1 className={styles.title}>TRACK Diary</h1>
         <div className={styles.divider}></div>
 
         <div className={styles.content}>

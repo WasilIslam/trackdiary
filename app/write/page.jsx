@@ -15,42 +15,54 @@ import {
 } from "firebase/firestore";
 import { auth, db, getCurrentUser } from "../firebase/auth";
 import styles from "./write.module.css";
+import {
+  ACTIVITY_TYPES,
+  ACTIVITY_TEMPLATES,
+  formatDateDisplay,
+  renderActivityValue,
+  validateDateRange,
+  getEmptyEntry,
+  getCurrentMonth,
+  getDaysInMonth,
+  isToday,
+  createEntriesMap,
+} from "./helper.write";
 
-const ACTIVITY_TYPES = {
-  BOOLEAN: "boolean", // yes/no
-  SCALE: "scale", // 1-5 points
-  OPTIONS: "options", // select from predefined options
-  MULTI_SELECT: "multi_select", // multiple options can be selected
-};
+// Import a simple chart library - you'll need to install this
+// npm install chart.js react-chartjs-2
+import { Line, Bar, Pie } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
 
-// Example activity templates (not added by default)
-const ACTIVITY_TEMPLATES = [
-  { code: "EXERCISE", title: "Exercise", type: ACTIVITY_TYPES.BOOLEAN },
-  { code: "STUDY", title: "Study", type: ACTIVITY_TYPES.SCALE, max: 5 },
-  {
-    code: "NAMAZ",
-    title: "Namaz",
-    type: ACTIVITY_TYPES.MULTI_SELECT,
-    options: ["Fajr", "Zuhr", "Asr", "Maghrib", "Isha"],
-  },
-  { code: "WATER", title: "Water Intake", type: ACTIVITY_TYPES.SCALE, max: 8 },
-  {
-    code: "MOOD",
-    title: "Mood",
-    type: ACTIVITY_TYPES.OPTIONS,
-    options: ["Great", "Good", "Neutral", "Bad", "Terrible"],
-  },
-];
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const WritePage = () => {
   const [activeTab, setActiveTab] = useState("entry");
   const [viewMode, setViewMode] = useState("single"); // "single" or "multiple"
+  const [monthViewTab, setMonthViewTab] = useState("calendar"); // "calendar" or "graphs"
   const [activities, setActivities] = useState([]);
-  const [entry, setEntry] = useState({
-    date: new Date().toISOString().split("T")[0],
-    note: "",
-    activities: {},
-  });
+  const [entry, setEntry] = useState(getEmptyEntry());
   const [newActivity, setNewActivity] = useState({
     title: "",
     type: ACTIVITY_TYPES.BOOLEAN,
@@ -61,72 +73,39 @@ const WritePage = () => {
   const [error, setError] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [monthEntries, setMonthEntries] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(
-    new Date().toISOString().substring(0, 7) // YYYY-MM format
-  );
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [chartType, setChartType] = useState("line"); // "line", "bar", or "pie"
 
   // Load user's activities and today's entry on mount
   useEffect(() => {
     const loadUserData = async () => {
       try {
         setLoading(true);
-        setError(null);
         const user = getCurrentUser();
 
         if (!user) {
-          setError("Please sign in to use this feature");
           setLoading(false);
           return;
         }
 
-        // Load user's activities with proper error handling
-        try {
-          const activitiesRef = collection(db, `users/${user.uid}/activities`);
-          const activitiesSnapshot = await getDocs(activitiesRef);
+        // Load user's activities
+        const activitiesRef = collection(db, `users/${user.uid}/activities`);
+        const activitiesSnapshot = await getDocs(activitiesRef);
+        const activitiesData = activitiesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-          // Use user's existing activities (no default activities added)
-          const userActivities = activitiesSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+        setActivities(activitiesData);
 
-          // Validate each activity has required fields
-          const validActivities = userActivities.filter((activity) => {
-            return activity.title && activity.type;
-          });
-
-          setActivities(validActivities);
-        } catch (actErr) {
-          console.error("Error loading activities:", actErr);
-          setError("Failed to load your activities");
-          setActivities([]);
-        }
-
-        // Load today's entry if it exists
-        try {
-          await loadEntry(new Date().toISOString().split("T")[0]);
-        } catch (entryErr) {
-          console.error("Error loading entry:", entryErr);
-          setError((prev) =>
-            prev
-              ? `${prev}. Also failed to load today's entry.`
-              : "Failed to load today's entry"
-          );
-
-          // Reset entry to empty state
-          setEntry({
-            date: new Date().toISOString().split("T")[0],
-            note: "",
-            activities: {},
-          });
-        }
+        // Load today's entry
+        const today = new Date().toISOString().split("T")[0];
+        await loadEntry(today);
 
         setLoading(false);
       } catch (err) {
-        console.error("Error in loadUserData:", err);
-        setError(
-          "An unexpected error occurred. Please try refreshing the page."
-        );
+        console.error("Error loading user data:", err);
+        setError("Failed to load your data. Please try again.");
         setLoading(false);
       }
     };
@@ -183,75 +162,71 @@ const WritePage = () => {
   };
 
   const loadEntry = async (date) => {
-    const user = getCurrentUser();
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
+    try {
+      setLoading(true);
+      const user = getCurrentUser();
 
-    const entriesRef = collection(db, `users/${user.uid}/entries`);
-    const q = query(entriesRef, where("date", "==", date));
-    const querySnapshot = await getDocs(q);
+      if (!user) {
+        setEntry({
+          date,
+          note: "",
+          activities: {},
+        });
+        setLoading(false);
+        return;
+      }
 
-    if (!querySnapshot.empty) {
-      const entryData = querySnapshot.docs[0].data();
-      setEntry({
-        id: querySnapshot.docs[0].id,
-        date,
-        note: entryData.note || "",
-        activities: entryData.activities || {},
-      });
-    } else {
-      // Reset entry for new date
-      setEntry({
-        date,
-        note: "",
-        activities: {},
-      });
+      // Query for entry with the given date
+      const entriesRef = collection(db, `users/${user.uid}/entries`);
+      const q = query(entriesRef, where("date", "==", date));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // Entry exists
+        const entryDoc = querySnapshot.docs[0];
+        setEntry({
+          id: entryDoc.id,
+          ...entryDoc.data(),
+          date, // Ensure date is in the correct format
+        });
+      } else {
+        // No entry for this date
+        setEntry({
+          date,
+          note: "",
+          activities: {},
+        });
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Error loading entry:", err);
+      setError("Failed to load entry. Please try again.");
+      setLoading(false);
     }
   };
 
   const handleDateChange = (e) => {
-    const selectedDate = e.target.value;
-    const today = new Date().toISOString().split("T")[0];
-    const fiveDaysAgo = new Date();
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-    const minDate = fiveDaysAgo.toISOString().split("T")[0];
+    const newDate = e.target.value;
+    const validation = validateDateRange(newDate);
 
-    if (selectedDate > today) {
-      setError("Cannot select future dates");
-      return;
-    }
-
-    if (selectedDate < minDate) {
-      setError("Cannot edit entries older than 5 days");
+    if (!validation.valid) {
+      setError(validation.message);
       return;
     }
 
     setError(null);
-    loadEntry(selectedDate);
+    loadEntry(newDate);
   };
 
   const navigateDate = (direction) => {
     const currentDate = new Date(entry.date);
     currentDate.setDate(currentDate.getDate() + direction);
 
-    // Don't allow future dates
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const validation = validateDateRange(currentDate);
 
-    // Compare dates properly by converting to timestamps
-    if (currentDate.getDay() > today.getDay()) {
-      setError("Cannot select future dates");
-      return;
-    }
-
-    // Don't allow dates older than 5 days
-    const fiveDaysAgo = new Date();
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-    fiveDaysAgo.setHours(0, 0, 0, 0);
-
-    if (currentDate.getTime() < fiveDaysAgo.getTime()) {
-      setError("Cannot edit entries older than 5 days");
+    if (!validation.valid) {
+      setError(validation.message);
       return;
     }
 
@@ -285,18 +260,9 @@ const WritePage = () => {
       setError(null);
 
       // Validate entry data
-      if (entry.date > new Date().toISOString().split("T")[0]) {
-        setError("Cannot save entries for future dates");
-        setLoading(false);
-        return;
-      }
-
-      const fiveDaysAgo = new Date();
-      fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-      const minDate = fiveDaysAgo.toISOString().split("T")[0];
-
-      if (entry.date < minDate) {
-        setError("Cannot save entries older than 5 days");
+      const validation = validateDateRange(entry.date);
+      if (!validation.valid) {
+        setError(validation.message);
         setLoading(false);
         return;
       }
@@ -652,28 +618,7 @@ const WritePage = () => {
     }
   };
 
-  const formatDateDisplay = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   const renderMonthView = () => {
-    // Get all days in the selected month
-    const [year, month] = selectedMonth.split("-");
-    const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-    // Create a map of date -> entry for quick lookup
-    const entriesMap = {};
-    monthEntries.forEach((entry) => {
-      entriesMap[entry.date] = entry;
-    });
-
     return (
       <div className={styles.monthView}>
         <div className={styles.monthSelector}>
@@ -681,100 +626,286 @@ const WritePage = () => {
             type="month"
             value={selectedMonth}
             onChange={handleMonthChange}
-            max={new Date().toISOString().substring(0, 7)}
+            max={getCurrentMonth()}
             className={styles.monthInput}
           />
         </div>
 
-        <div className={styles.monthGridContainer}>
-          <div className={styles.monthGrid}>
-            <div className={styles.columnHeaders}>
-              <div className={styles.dayColumnHeader}>Day</div>
-              {activities.map((activity) => (
-                <div key={activity.id} className={styles.activityColumnHeader}>
-                  {activity.title}
-                </div>
-              ))}
-              <div className={styles.notesColumnHeader}>Notes</div>
-            </div>
+        <div className={styles.monthViewTabs}>
+          <button
+            className={`${styles.monthViewTab} ${
+              monthViewTab === "calendar" ? styles.activeMonthViewTab : ""
+            }`}
+            onClick={() => setMonthViewTab("calendar")}
+          >
+            Calendar View
+          </button>
+          <button
+            className={`${styles.monthViewTab} ${
+              monthViewTab === "graphs" ? styles.activeMonthViewTab : ""
+            }`}
+            onClick={() => setMonthViewTab("graphs")}
+          >
+            Monthly Graphs
+          </button>
+        </div>
 
-            <div className={styles.gridRows}>
-              {days.map((day) => {
-                const dateStr = `${year}-${month}-${day
-                  .toString()
-                  .padStart(2, "0")}`;
-                const isToday =
-                  dateStr === new Date().toISOString().split("T")[0];
-                const entry = entriesMap[dateStr];
+        {monthViewTab === "calendar"
+          ? renderMonthCalendar()
+          : renderMonthGraphs()}
+      </div>
+    );
+  };
 
-                return (
-                  <div key={day} className={styles.gridRow}>
-                    <div
-                      className={`${styles.dayCell} ${
-                        isToday ? styles.today : ""
-                      }`}
-                      onClick={() => {
+  const renderMonthCalendar = () => {
+    // Get all days in the selected month
+    const days = getDaysInMonth(selectedMonth);
+
+    // Create a map of date -> entry for quick lookup
+    const entriesMap = createEntriesMap(monthEntries);
+
+    // Extract year and month for date formatting
+    const [year, month] = selectedMonth.split("-");
+
+    return (
+      <div className={styles.monthGridContainer}>
+        <div className={styles.monthGrid}>
+          <div className={styles.columnHeaders}>
+            <div className={styles.dayColumnHeader}>Day</div>
+            {activities.map((activity) => (
+              <div key={activity.id} className={styles.activityColumnHeader}>
+                {activity.title}
+              </div>
+            ))}
+            <div className={styles.notesColumnHeader}>Notes</div>
+          </div>
+
+          <div className={styles.gridRows}>
+            {days.map((day) => {
+              const dateStr = `${year}-${month}-${day
+                .toString()
+                .padStart(2, "0")}`;
+              const todayCheck = isToday(dateStr);
+              const entry = entriesMap[dateStr];
+
+              return (
+                <div key={day} className={styles.gridRow}>
+                  <div
+                    className={`${styles.dayCell} ${
+                      todayCheck ? styles.today : ""
+                    }`}
+                    onClick={() => {
+                      setViewMode("single");
+                      loadEntry(dateStr);
+                    }}
+                  >
+                    {day}
+                  </div>
+
+                  {activities.map((activity) => {
+                    const value = entry?.activities?.[activity.id];
+
+                    return (
+                      <div key={activity.id} className={styles.activityCell}>
+                        {renderActivityValue(activity, value)}
+                      </div>
+                    );
+                  })}
+
+                  <div
+                    className={styles.notesCell}
+                    onClick={() => {
+                      if (entry?.note) {
                         setViewMode("single");
                         loadEntry(dateStr);
-                      }}
-                    >
-                      {day}
-                    </div>
-
-                    {activities.map((activity) => {
-                      const value = entry?.activities?.[activity.id];
-
-                      return (
-                        <div key={activity.id} className={styles.activityCell}>
-                          {renderActivityValue(activity, value)}
-                        </div>
-                      );
-                    })}
-
-                    <div
-                      className={styles.notesCell}
-                      onClick={() => {
-                        if (entry?.note) {
-                          setViewMode("single");
-                          loadEntry(dateStr);
-                        }
-                      }}
-                    >
-                      {entry?.note ? (
-                        <div className={styles.notePreview}>{entry.note}</div>
-                      ) : (
-                        <span className={styles.emptyNote}>-</span>
-                      )}
-                    </div>
+                      }
+                    }}
+                  >
+                    {entry?.note ? (
+                      <div className={styles.notePreview}>{entry.note}</div>
+                    ) : (
+                      <span className={styles.emptyNote}>-</span>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
     );
   };
 
-  const renderActivityValue = (activity, value) => {
-    if (value === undefined || value === null) return "-";
+  const renderMonthGraphs = () => {
+    // Get all days in the selected month
+    const days = getDaysInMonth(selectedMonth);
+    const [year, month] = selectedMonth.split("-");
 
-    switch (activity.type) {
-      case ACTIVITY_TYPES.BOOLEAN:
-        return value === true ? "✓" : "✗";
+    // Create labels for x-axis (days of month)
+    const labels = days.map((day) => day.toString());
 
-      case ACTIVITY_TYPES.SCALE:
-        return value;
+    // Create a map of date -> entry for quick lookup
+    const entriesMap = createEntriesMap(monthEntries);
 
-      case ACTIVITY_TYPES.OPTIONS:
-        return value;
+    // Chart type selector
+    const chartTypeSelector = (
+      <div className={styles.chartTypeSelector}>
+        <label className={styles.chartTypeLabel}>Chart Type:</label>
+        <select
+          value={chartType}
+          onChange={(e) => setChartType(e.target.value)}
+          className={styles.chartTypeSelect}
+        >
+          <option value="line">Line Chart</option>
+          <option value="bar">Bar Chart</option>
+          <option value="pie">Pie Chart (Completion)</option>
+        </select>
+      </div>
+    );
 
-      case ACTIVITY_TYPES.MULTI_SELECT:
-        return Array.isArray(value) ? value.length : 0;
+    // Notes completion chart
+    const notesCompletionData = {
+      labels: ["Completed", "Missing"],
+      datasets: [
+        {
+          label: "Notes Completion",
+          data: [
+            monthEntries.filter(
+              (entry) => entry.note && entry.note.trim() !== ""
+            ).length,
+            days.length -
+              monthEntries.filter(
+                (entry) => entry.note && entry.note.trim() !== ""
+              ).length,
+          ],
+          backgroundColor: [
+            "rgba(75, 192, 192, 0.6)",
+            "rgba(255, 99, 132, 0.6)",
+          ],
+          borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+          borderWidth: 1,
+        },
+      ],
+    };
 
-      default:
-        return "-";
+    // If no activities, show a message
+    if (activities.length === 0) {
+      return (
+        <div className={styles.graphsContainer}>
+          {chartTypeSelector}
+          <div className={styles.emptyState}>
+            No activities to display. Add some activities in Settings!
+          </div>
+
+          <div className={styles.graphSection}>
+            <h3 className={styles.graphTitle}>Notes Completion</h3>
+            <div className={styles.graphWrapper}>
+              <Pie data={notesCompletionData} />
+            </div>
+          </div>
+        </div>
+      );
     }
+
+    // Create datasets for each activity
+    const activityDatasets = activities.map((activity) => {
+      // Prepare data based on activity type
+      const data = days.map((day) => {
+        const dateStr = `${year}-${month}-${day.toString().padStart(2, "0")}`;
+        const entry = entriesMap[dateStr];
+        const value = entry?.activities?.[activity.id];
+
+        // Convert value based on activity type
+        if (value === undefined || value === null) return null;
+
+        switch (activity.type) {
+          case ACTIVITY_TYPES.BOOLEAN:
+            return value === true ? 1 : 0;
+          case ACTIVITY_TYPES.SCALE:
+            return value;
+          case ACTIVITY_TYPES.OPTIONS:
+            // For options, we'll just return 1 if there's a value
+            return value ? 1 : 0;
+          case ACTIVITY_TYPES.MULTI_SELECT:
+            return Array.isArray(value) ? value.length : 0;
+          default:
+            return null;
+        }
+      });
+
+      // Generate a color based on the activity index
+      const hue = (activities.indexOf(activity) * 137) % 360;
+
+      return {
+        label: activity.title,
+        data: data,
+        borderColor: `hsl(${hue}, 70%, 50%)`,
+        backgroundColor: `hsla(${hue}, 70%, 50%, 0.2)`,
+        fill: false,
+        tension: 0.1,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      };
+    });
+
+    // Prepare chart data
+    const chartData = {
+      labels: labels,
+      datasets: activityDatasets,
+    };
+
+    // Chart options
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "top",
+        },
+        title: {
+          display: true,
+          text: `Activities for ${month}/${year}`,
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+    };
+
+    return (
+      <div className={styles.graphsContainer}>
+        {chartTypeSelector}
+
+        <div className={styles.graphSection}>
+          <h3 className={styles.graphTitle}>Activity Trends</h3>
+          <div className={styles.graphWrapper}>
+            {chartType === "line" && (
+              <Line data={chartData} options={chartOptions} />
+            )}
+            {chartType === "bar" && (
+              <Bar data={chartData} options={chartOptions} />
+            )}
+            {chartType === "pie" && (
+              <div className={styles.pieChartMessage}>
+                Pie chart is only available for completion metrics.
+                <div className={styles.smallChart}>
+                  <Line data={chartData} options={chartOptions} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.graphSection}>
+          <h3 className={styles.graphTitle}>Notes Completion</h3>
+          <div className={styles.graphWrapper}>
+            <Pie data={notesCompletionData} />
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -787,7 +918,7 @@ const WritePage = () => {
             }`}
             onClick={() => setActiveTab("entry")}
           >
-            Entry
+            DAILY ENTRY
           </button>
           <button
             className={`${styles.tab} ${
@@ -810,7 +941,7 @@ const WritePage = () => {
                 }`}
                 onClick={() => setViewMode("single")}
               >
-                Day View
+                Single Day
               </button>
               <button
                 className={`${styles.viewToggleButton} ${

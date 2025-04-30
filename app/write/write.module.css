@@ -772,3 +772,125 @@
     border-left-width: 2px;
   }
 }
+
+/* Month view tabs */
+.monthViewTabs {
+  display: flex;
+  margin-bottom: 1.5rem;
+  border: 2px solid black;
+  border-radius: 4px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.monthViewTab {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.activeMonthViewTab {
+  background-color: black;
+  color: white;
+}
+
+/* Graphs container */
+.graphsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+  border: 3px solid black;
+  background-color: white;
+}
+
+.graphSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.graphTitle {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid black;
+}
+
+.graphWrapper {
+  height: 300px;
+  position: relative;
+  margin-top: 1rem;
+}
+
+.chartTypeSelector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.chartTypeLabel {
+  font-weight: bold;
+}
+
+.chartTypeSelect {
+  padding: 0.5rem;
+  border: 2px solid black;
+  background-color: white;
+  font-size: 0.9rem;
+}
+
+.pieChartMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #666;
+}
+
+.smallChart {
+  width: 80%;
+  height: 200px;
+  margin-top: 1rem;
+}
+
+/* Responsive styles for graphs */
+@media (max-width: 768px) {
+  .graphWrapper {
+    height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .graphWrapper {
+    height: 200px;
+  }
+
+  .chartTypeSelector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .chartTypeSelect {
+    width: 100%;
+  }
+
+  .monthViewTabs {
+    width: 100%;
+  }
+
+  .monthViewTab {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
