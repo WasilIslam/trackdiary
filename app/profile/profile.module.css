@@ -148,3 +148,56 @@
 .error .messageText {
   color: #ff0000;
 }
+
+.checkboxGroup {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border: 3px solid black;
+  padding: 0.8rem;
+  background-color: white;
+}
+
+.checkbox {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+  cursor: pointer;
+  border: 3px solid black;
+  background-color: white;
+  flex-shrink: 0;
+}
+
+.checkbox:checked {
+  background-color: black;
+  position: relative;
+}
+
+.checkbox:checked::after {
+  content: "✓";
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.checkboxLabel {
+  font-family: var(--font-geist-sans);
+  font-size: 1rem;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.checkbox:disabled,
+.checkboxLabel:has(+ input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}

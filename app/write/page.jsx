@@ -28,8 +28,7 @@ import {
   createEntriesMap,
 } from "./helper.write";
 
-// Import a simple chart library - you'll need to install this
-// npm install chart.js react-chartjs-2
+// Import chart components
 import { Line, Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -43,6 +42,20 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+
+// Import graph utilities
+import {
+  prepareActivityData,
+  prepareNotesCompletionData,
+  getChartOptions,
+} from "./graphs.write";
+
+// Import image utilities
+import { uploadImage, deleteImage } from "../firebase/storage";
+import Image from "next/image";
+
+// Import FileModal component
+import FileModal from "../components/FileModal";
 
 // Register ChartJS components
 ChartJS.register(
@@ -75,6 +88,16 @@ const WritePage = () => {
   const [monthEntries, setMonthEntries] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [chartType, setChartType] = useState("line"); // "line", "bar", or "pie"
+
+  // Add these new state variables
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [captureMode, setCaptureMode] = useState(false); // For camera capture
+
+  // Add these new state variables
+  const [showFileModal, setShowFileModal] = useState(false);
+  const [allEntries, setAllEntries] = useState([]);
 
   // Load user's activities and today's entry on mount
   useEffect(() => {
@@ -164,6 +187,9 @@ const WritePage = () => {
   const loadEntry = async (date) => {
     try {
       setLoading(true);
+      setImagePreviews([]); // Reset image previews
+      setImageFiles([]); // Reset image files
+      setError(null); // Clear any previous errors
       const user = getCurrentUser();
 
       if (!user) {
@@ -171,6 +197,9 @@ const WritePage = () => {
           date,
           note: "",
           activities: {},
+          files: [],
+          filePaths: [],
+          fileMetadata: [],
         });
         setLoading(false);
         return;
@@ -184,24 +213,55 @@ const WritePage = () => {
       if (!querySnapshot.empty) {
         // Entry exists
         const entryDoc = querySnapshot.docs[0];
+        const entryData = entryDoc.data();
+
         setEntry({
           id: entryDoc.id,
-          ...entryDoc.data(),
+          ...entryData,
           date, // Ensure date is in the correct format
         });
+
+        // Create previews for existing files
+        if (entryData.files && entryData.files.length > 0) {
+          const previews = entryData.files.map((url, index) => {
+            // Use metadata if available, otherwise determine type from URL
+            const metadata =
+              entryData.fileMetadata && entryData.fileMetadata[index];
+            const isImage = metadata
+              ? metadata.type.startsWith("image/")
+              : url.includes(".jpg") ||
+                url.includes(".jpeg") ||
+                url.includes(".png") ||
+                url.includes(".gif") ||
+                url.includes(".webp");
+
+            const name = metadata ? metadata.name : `File ${index + 1}`;
+
+            return {
+              url: url,
+              type: isImage ? "image" : "document",
+              name: name,
+            };
+          });
+
+          setImagePreviews(previews);
+        }
       } else {
         // No entry for this date
         setEntry({
           date,
           note: "",
           activities: {},
+          files: [],
+          filePaths: [],
+          fileMetadata: [],
         });
       }
 
       setLoading(false);
     } catch (err) {
       console.error("Error loading entry:", err);
-      setError("Failed to load entry. Please try again.");
+      setError(`Failed to load entry: ${err.message || "Please try again"}`);
       setLoading(false);
     }
   };
@@ -267,6 +327,50 @@ const WritePage = () => {
         return;
       }
 
+      // Handle file uploads if there are new files
+      let uploadedFiles = [];
+      let uploadedFilePaths = [];
+      let fileMetadata = [];
+
+      if (imageFiles.length > 0) {
+        setUploadingImage(true);
+
+        try {
+          // Upload each file
+          for (let i = 0; i < imageFiles.length; i++) {
+            const file = imageFiles[i];
+            const fileData = await uploadImage(
+              user.uid,
+              `${entry.date}_${i}`,
+              file
+            );
+
+            if (!fileData || !fileData.url) {
+              throw new Error(`Failed to upload file ${i + 1}`);
+            }
+
+            uploadedFiles.push(fileData.url);
+            uploadedFilePaths.push(fileData.path);
+            fileMetadata.push({
+              name: file.name,
+              type: file.type,
+              url: fileData.url,
+              path: fileData.path,
+            });
+          }
+        } catch (imgError) {
+          console.error("Error uploading files:", imgError);
+          setError(
+            `Failed to upload files: ${imgError.message || "Unknown error"}`
+          );
+          setLoading(false);
+          setUploadingImage(false);
+          return;
+        }
+
+        setUploadingImage(false);
+      }
+
       // Prepare entry data
       const entryData = {
         date: entry.date,
@@ -274,6 +378,22 @@ const WritePage = () => {
         activities: entry.activities || {},
         updatedAt: serverTimestamp(),
       };
+
+      // Combine existing files with new uploads
+      const existingFiles = entry.files || [];
+      const existingPaths = entry.filePaths || [];
+      const existingMetadata = entry.fileMetadata || [];
+
+      const allFiles = [...existingFiles, ...uploadedFiles];
+      const allPaths = [...existingPaths, ...uploadedFilePaths];
+      const allMetadata = [...existingMetadata, ...fileMetadata];
+
+      // Add files and paths to entry data
+      if (allFiles.length > 0) {
+        entryData.files = allFiles;
+        entryData.filePaths = allPaths;
+        entryData.fileMetadata = allMetadata;
+      }
 
       if (entry.id) {
         // Update existing entry
@@ -290,17 +410,24 @@ const WritePage = () => {
         );
 
         // Update local state with the new ID
-        setEntry((prev) => ({
-          ...prev,
-          id: docRef.id,
-        }));
+        entryData.id = docRef.id;
       }
+
+      // Update local state with the new files
+      setEntry({
+        ...entry,
+        ...entryData,
+        id: entryData.id || entry.id,
+      });
+
+      // Clear file selection state but keep previews
+      setImageFiles([]);
 
       setLoading(false);
       alert("Entry saved successfully!");
     } catch (err) {
       console.error("Error saving entry:", err);
-      setError("Failed to save entry. Please try again.");
+      setError(`Failed to save entry: ${err.message || "Please try again."}`);
       setLoading(false);
     }
   };
@@ -653,6 +780,18 @@ const WritePage = () => {
         {monthViewTab === "calendar"
           ? renderMonthCalendar()
           : renderMonthGraphs()}
+
+        <div className={styles.viewAllFilesContainer}>
+          <button
+            className={styles.uploadButton}
+            onClick={() => {
+              loadAllEntriesWithFiles();
+              setShowFileModal(true);
+            }}
+          >
+            View All Files
+          </button>
+        </div>
       </div>
     );
   };
@@ -741,58 +880,16 @@ const WritePage = () => {
     const days = getDaysInMonth(selectedMonth);
     const [year, month] = selectedMonth.split("-");
 
-    // Create labels for x-axis (days of month)
-    const labels = days.map((day) => day.toString());
-
     // Create a map of date -> entry for quick lookup
     const entriesMap = createEntriesMap(monthEntries);
 
-    // Chart type selector
-    const chartTypeSelector = (
-      <div className={styles.chartTypeSelector}>
-        <label className={styles.chartTypeLabel}>Chart Type:</label>
-        <select
-          value={chartType}
-          onChange={(e) => setChartType(e.target.value)}
-          className={styles.chartTypeSelect}
-        >
-          <option value="line">Line Chart</option>
-          <option value="bar">Bar Chart</option>
-          <option value="pie">Pie Chart (Completion)</option>
-        </select>
-      </div>
-    );
-
     // Notes completion chart
-    const notesCompletionData = {
-      labels: ["Completed", "Missing"],
-      datasets: [
-        {
-          label: "Notes Completion",
-          data: [
-            monthEntries.filter(
-              (entry) => entry.note && entry.note.trim() !== ""
-            ).length,
-            days.length -
-              monthEntries.filter(
-                (entry) => entry.note && entry.note.trim() !== ""
-              ).length,
-          ],
-          backgroundColor: [
-            "rgba(75, 192, 192, 0.6)",
-            "rgba(255, 99, 132, 0.6)",
-          ],
-          borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
-          borderWidth: 1,
-        },
-      ],
-    };
+    const notesCompletionData = prepareNotesCompletionData(monthEntries, days);
 
     // If no activities, show a message
     if (activities.length === 0) {
       return (
         <div className={styles.graphsContainer}>
-          {chartTypeSelector}
           <div className={styles.emptyState}>
             No activities to display. Add some activities in Settings!
           </div>
@@ -807,105 +904,350 @@ const WritePage = () => {
       );
     }
 
-    // Create datasets for each activity
-    const activityDatasets = activities.map((activity) => {
-      // Prepare data based on activity type
-      const data = days.map((day) => {
-        const dateStr = `${year}-${month}-${day.toString().padStart(2, "0")}`;
-        const entry = entriesMap[dateStr];
-        const value = entry?.activities?.[activity.id];
-
-        // Convert value based on activity type
-        if (value === undefined || value === null) return null;
-
-        switch (activity.type) {
-          case ACTIVITY_TYPES.BOOLEAN:
-            return value === true ? 1 : 0;
-          case ACTIVITY_TYPES.SCALE:
-            return value;
-          case ACTIVITY_TYPES.OPTIONS:
-            // For options, we'll just return 1 if there's a value
-            return value ? 1 : 0;
-          case ACTIVITY_TYPES.MULTI_SELECT:
-            return Array.isArray(value) ? value.length : 0;
-          default:
-            return null;
-        }
-      });
-
-      // Generate a color based on the activity index
-      const hue = (activities.indexOf(activity) * 137) % 360;
-
-      return {
-        label: activity.title,
-        data: data,
-        borderColor: `hsl(${hue}, 70%, 50%)`,
-        backgroundColor: `hsla(${hue}, 70%, 50%, 0.2)`,
-        fill: false,
-        tension: 0.1,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      };
-    });
-
-    // Prepare chart data
-    const chartData = {
-      labels: labels,
-      datasets: activityDatasets,
-    };
-
-    // Chart options
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: "top",
-        },
-        title: {
-          display: true,
-          text: `Activities for ${month}/${year}`,
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-        },
-      },
-    };
-
     return (
       <div className={styles.graphsContainer}>
-        {chartTypeSelector}
-
-        <div className={styles.graphSection}>
-          <h3 className={styles.graphTitle}>Activity Trends</h3>
-          <div className={styles.graphWrapper}>
-            {chartType === "line" && (
-              <Line data={chartData} options={chartOptions} />
-            )}
-            {chartType === "bar" && (
-              <Bar data={chartData} options={chartOptions} />
-            )}
-            {chartType === "pie" && (
-              <div className={styles.pieChartMessage}>
-                Pie chart is only available for completion metrics.
-                <div className={styles.smallChart}>
-                  <Line data={chartData} options={chartOptions} />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className={styles.graphSection}>
           <h3 className={styles.graphTitle}>Notes Completion</h3>
           <div className={styles.graphWrapper}>
             <Pie data={notesCompletionData} />
           </div>
         </div>
+
+        {activities.map((activity) => {
+          const activityData = prepareActivityData(
+            activity,
+            entriesMap,
+            days,
+            selectedMonth
+          );
+
+          if (!activityData) return null;
+
+          return (
+            <div key={activity.id} className={styles.activityGraphSection}>
+              <h3 className={styles.graphTitle}>{activity.title}</h3>
+
+              <div className={styles.graphsRow}>
+                <div className={styles.graphCard}>
+                  <h4 className={styles.graphSubtitle}>Distribution</h4>
+                  <div className={styles.pieChartWrapper}>
+                    <Pie
+                      data={activityData.pieData}
+                      options={getChartOptions(
+                        `${activity.title} Distribution`
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.graphCard}>
+                  <h4 className={styles.graphSubtitle}>Trend</h4>
+                  <div className={styles.lineChartWrapper}>
+                    <Line
+                      data={activityData.lineData}
+                      options={getChartOptions(`${activity.title} Trend`)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
+  };
+
+  // Simplify camera capture to use the device's native camera
+  const handleCameraCapture = () => {
+    // Use the file input with capture attribute to open the device camera
+    const cameraInput = document.createElement("input");
+    cameraInput.type = "file";
+    cameraInput.accept = "image/*";
+    cameraInput.capture = "environment"; // This will open the camera on mobile devices
+
+    cameraInput.onchange = (e) => {
+      handleFileSelect(e);
+    };
+
+    cameraInput.click();
+  };
+
+  // Update the handleFileSelect function to properly create previews
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    // Check if adding these files would exceed the limit
+    const totalFiles = imageFiles.length + files.length;
+    if (totalFiles > 5) {
+      setError(
+        `You can only upload up to 5 files. You've selected ${totalFiles} files.`
+      );
+      return;
+    }
+
+    // Validate each file
+    const validFiles = files.filter((file) => {
+      // Check file type (image or common document types)
+      const isImage = file.type.startsWith("image/");
+      const isDocument = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+      ].includes(file.type);
+
+      if (!isImage && !isDocument) {
+        setError("Only images and documents (PDF, DOC, DOCX, TXT) are allowed");
+        return false;
+      }
+
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File size should be less than 5MB");
+        return false;
+      }
+
+      return true;
+    });
+
+    if (!validFiles.length) return;
+
+    // Add new files to state
+    setImageFiles((prev) => [...prev, ...validFiles]);
+
+    // Create previews for all files
+    validFiles.forEach((file) => {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreviews((prev) => [
+            ...prev,
+            {
+              url: e.target.result,
+              type: "image",
+              name: file.name,
+            },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // For non-image files, just add the file name
+        setImagePreviews((prev) => [
+          ...prev,
+          {
+            url: null,
+            type: "document",
+            name: file.name,
+          },
+        ]);
+      }
+    });
+  };
+
+  // Function to remove a file
+  const handleRemoveFile = (index) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Function to handle file deletion
+  const handleDeleteFile = async (index) => {
+    const user = getCurrentUser();
+    if (!user) {
+      setError("Please sign in to delete files");
+      return;
+    }
+
+    if (!entry.files || !entry.files[index]) {
+      setError("No file to delete");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this file?")) {
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+
+      // Delete the file from Firebase Storage if path exists
+      if (entry.filePaths && entry.filePaths[index]) {
+        await deleteImage(entry.filePaths[index]);
+      }
+
+      // Remove the file from arrays
+      const updatedFiles = [...entry.files];
+      updatedFiles.splice(index, 1);
+
+      const updatedPaths = [...(entry.filePaths || [])];
+      if (updatedPaths.length > index) {
+        updatedPaths.splice(index, 1);
+      }
+
+      // Update the entry in Firestore
+      await updateDoc(doc(db, `users/${user.uid}/entries`, entry.id), {
+        files: updatedFiles,
+        filePaths: updatedPaths,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update local state
+      setEntry({
+        ...entry,
+        files: updatedFiles,
+        filePaths: updatedPaths,
+      });
+
+      // Update previews
+      setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+
+      setUploadingImage(false);
+      alert("File deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting file:", err);
+      setError(`Failed to delete file: ${err.message || "Unknown error"}`);
+      setUploadingImage(false);
+    }
+  };
+
+  // Add a function to handle file downloads
+  const handleDownloadFile = (url, fileName) => {
+    // Create a temporary anchor element
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName || "download";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // Add this function to load all entries with files
+  const loadAllEntriesWithFiles = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const user = getCurrentUser();
+      if (!user) {
+        setError("Please sign in to view files");
+        setLoading(false);
+        return;
+      }
+
+      // Query for all entries that have files
+      const entriesRef = collection(db, `users/${user.uid}/entries`);
+      const q = query(entriesRef);
+      const querySnapshot = await getDocs(q);
+
+      const entriesWithFiles = [];
+
+      querySnapshot.forEach((doc) => {
+        const entryData = doc.data();
+        if (entryData.files && entryData.files.length > 0) {
+          entriesWithFiles.push({
+            id: doc.id,
+            ...entryData,
+          });
+        }
+      });
+
+      // Sort by date (newest first)
+      entriesWithFiles.sort((a, b) => b.date.localeCompare(a.date));
+
+      setAllEntries(entriesWithFiles);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error loading entries with files:", err);
+      setError(`Failed to load files: ${err.message || "Please try again"}`);
+      setLoading(false);
+    }
+  };
+
+  // Add this function to handle file deletion from the modal
+  const handleDeleteFileFromModal = async (entryId, fileIndex) => {
+    try {
+      setUploadingImage(true);
+      setError(null);
+
+      const user = getCurrentUser();
+      if (!user) {
+        setError("Please sign in to delete files");
+        setUploadingImage(false);
+        return;
+      }
+
+      // Find the entry
+      const entryToUpdate = allEntries.find((entry) => entry.id === entryId);
+      if (!entryToUpdate) {
+        setError("Entry not found");
+        setUploadingImage(false);
+        return;
+      }
+
+      // Delete the file from Firebase Storage if path exists
+      if (entryToUpdate.filePaths && entryToUpdate.filePaths[fileIndex]) {
+        await deleteImage(entryToUpdate.filePaths[fileIndex]);
+      }
+
+      // Remove the file from arrays
+      const updatedFiles = [...entryToUpdate.files];
+      updatedFiles.splice(fileIndex, 1);
+
+      const updatedPaths = [...(entryToUpdate.filePaths || [])];
+      if (updatedPaths.length > fileIndex) {
+        updatedPaths.splice(fileIndex, 1);
+      }
+
+      const updatedMetadata = [...(entryToUpdate.fileMetadata || [])];
+      if (updatedMetadata.length > fileIndex) {
+        updatedMetadata.splice(fileIndex, 1);
+      }
+
+      // Update the entry in Firestore
+      await updateDoc(doc(db, `users/${user.uid}/entries`, entryId), {
+        files: updatedFiles,
+        filePaths: updatedPaths,
+        fileMetadata: updatedMetadata,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update local state
+      setAllEntries((prevEntries) => {
+        return prevEntries.map((entry) => {
+          if (entry.id === entryId) {
+            return {
+              ...entry,
+              files: updatedFiles,
+              filePaths: updatedPaths,
+              fileMetadata: updatedMetadata,
+            };
+          }
+          return entry;
+        });
+      });
+
+      // If the current entry is being updated, also update that state
+      if (entry.id === entryId) {
+        setEntry({
+          ...entry,
+          files: updatedFiles,
+          filePaths: updatedPaths,
+          fileMetadata: updatedMetadata,
+        });
+
+        // Update previews if we're viewing this entry
+        setImagePreviews((prev) => prev.filter((_, i) => i !== fileIndex));
+      }
+
+      setUploadingImage(false);
+      alert("File deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting file:", err);
+      setError(`Failed to delete file: ${err.message || "Unknown error"}`);
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -1013,12 +1355,104 @@ const WritePage = () => {
                   />
                 </div>
 
+                {/* Simplified files section with download option */}
+                <div className={styles.filesSection}>
+                  <h2 className={styles.sectionTitle}>FILES & IMAGES</h2>
+
+                  {error && <div className={styles.errorMessage}>{error}</div>}
+
+                  {/* Display existing files */}
+                  {imagePreviews.length > 0 && (
+                    <div className={styles.filesList}>
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className={styles.fileItem}>
+                          {preview.type === "image" ? (
+                            <div className={styles.imagePreviewContainer}>
+                              <img
+                                src={preview.url}
+                                alt={`File ${index + 1}`}
+                                className={styles.imagePreview}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = "/placeholder-image.png";
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className={styles.documentPreview}>
+                              {preview.name}
+                            </div>
+                          )}
+
+                          <div className={styles.fileActions}>
+                            <button
+                              className={styles.downloadButton}
+                              onClick={() =>
+                                handleDownloadFile(preview.url, preview.name)
+                              }
+                            >
+                              Download
+                            </button>
+
+                            <button
+                              className={styles.deleteButton}
+                              onClick={() =>
+                                entry.files && entry.files[index]
+                                  ? handleDeleteFile(index)
+                                  : handleRemoveFile(index)
+                              }
+                              disabled={uploadingImage || loading}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* File upload controls */}
+                  {imagePreviews.length < 5 && (
+                    <div className={styles.fileUploadControls}>
+                      <button
+                        className={`${styles.button} ${styles.uploadButton}`}
+                        onClick={() =>
+                          document.getElementById("file-upload").click()
+                        }
+                      >
+                        Add File
+                      </button>
+
+                      <button
+                        className={`${styles.button} ${styles.uploadButton}`}
+                        onClick={handleCameraCapture}
+                      >
+                        Take Photo
+                      </button>
+
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                        onChange={handleFileSelect}
+                        className={styles.fileInput}
+                        id="file-upload"
+                        multiple
+                      />
+                    </div>
+                  )}
+
+                  {/* File counter */}
+                  <div className={styles.fileCounter}>
+                    {imagePreviews.length} of 5 files added
+                  </div>
+                </div>
+
                 <button
                   className={styles.button}
                   onClick={handleSaveEntry}
-                  disabled={loading}
+                  disabled={loading || uploadingImage}
                 >
-                  {loading ? "SAVING..." : "SAVE ENTRY"}
+                  {loading || uploadingImage ? "SAVING..." : "SAVE ENTRY"}
                 </button>
               </>
             ) : (
@@ -1190,6 +1624,16 @@ const WritePage = () => {
           </div>
         )}
       </div>
+
+      {/* File Modal */}
+      <FileModal
+        isOpen={showFileModal}
+        onClose={() => setShowFileModal(false)}
+        entries={allEntries}
+        onDownload={handleDownloadFile}
+        onDelete={handleDeleteFileFromModal}
+        loading={loading || uploadingImage}
+      />
     </div>
   );
 };

@@ -16,6 +16,7 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     displayName: "",
     phone: "",
+    emailReminders: false,
   });
   const [message, setMessage] = useState({ text: "", type: "" });
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function Profile() {
             displayName:
               result.data.displayName || currentUser.displayName || "",
             phone: result.data.phone || "",
+            emailReminders: result.data.emailReminders || false,
           });
         } else {
           console.error("Failed to fetch user data:", result.error);
@@ -67,10 +69,10 @@ export default function Profile() {
   }, [router]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -85,6 +87,7 @@ export default function Profile() {
       const result = await updateUserProfile(user.uid, {
         displayName: formData.displayName,
         phone: formData.phone,
+        emailReminders: formData.emailReminders,
       });
 
       if (result.success) {
@@ -92,6 +95,7 @@ export default function Profile() {
           ...prev,
           displayName: formData.displayName,
           phone: formData.phone,
+          emailReminders: formData.emailReminders,
         }));
 
         setMessage({
@@ -184,6 +188,21 @@ export default function Profile() {
                 className={styles.input}
                 disabled={saving}
               />
+            </div>
+
+            <div className={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="emailReminders"
+                name="emailReminders"
+                checked={formData.emailReminders}
+                onChange={handleChange}
+                className={styles.checkbox}
+                disabled={saving}
+              />
+              <label htmlFor="emailReminders" className={styles.checkboxLabel}>
+                RECEIVE EMAIL REMINDERS
+              </label>
             </div>
 
             <div className={styles.buttonContainer}>
