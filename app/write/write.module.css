@@ -28,6 +28,34 @@
   letter-spacing: 1px;
 }
 
+/* Responsive title */
+@media (max-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+    box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.9);
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.8rem;
+  }
+
+  .card {
+    padding: 1rem;
+    border-width: 2px;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.9);
+  }
+
+  .container {
+    padding: 1rem 0.5rem;
+  }
+}
+
 .tabs {
   display: flex;
   margin-bottom: 2rem;
@@ -69,23 +97,51 @@
   flex-direction: column;
 }
 
+.viewToggle {
+  display: flex;
+  margin-bottom: 1.5rem;
+  border: 2px solid black;
+  border-radius: 4px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.viewToggleButton {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.activeViewToggle {
+  background-color: black;
+  color: white;
+}
+
 .dateSelector {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 2rem;
+  border: 3px solid black;
+  padding: 0.5rem;
 }
 
-.dateLabel {
-  font-weight: bold;
-  margin-right: 1rem;
-  font-size: 1.1rem;
+.dateControls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
 }
 
 .dateInput {
-  border: 3px solid black;
-  padding: 0.5rem;
-  font-size: 1rem;
+  border: 2px solid black;
+  padding: 0.3rem;
+  font-size: 0.9rem;
   background-color: white;
+  margin-top: 0.5rem;
 }
 
 .sectionTitle {
@@ -412,4 +468,307 @@
 .dangerButton {
   background-color: #ff4d4d;
   margin-top: 2rem;
+}
+
+/* View mode options */
+.viewOptions {
+  display: flex;
+  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+}
+
+.viewButton {
+  flex: 1;
+  background: none;
+  border: 3px solid black;
+  padding: 0.8rem 1.5rem;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.activeView {
+  background-color: black;
+  color: white;
+}
+
+/* Date selector improvements */
+.dateNavButton {
+  background-color: black;
+  color: white;
+  border: 2px solid black;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dateNavButton:disabled {
+  background-color: #888;
+  cursor: not-allowed;
+}
+
+.currentDate {
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+/* Month view styles */
+.monthView {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.monthSelector {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.monthInput {
+  border: 3px solid black;
+  padding: 0.8rem;
+  font-size: 1rem;
+  background-color: white;
+}
+
+.monthGridContainer {
+  overflow-x: auto;
+  border: 3px solid black;
+  width: 100%;
+}
+
+.monthGrid {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.columnHeaders {
+  display: table-row;
+  background-color: black;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dayColumnHeader {
+  display: table-cell;
+  width: 60px;
+  padding: 1rem 0.5rem;
+  font-weight: bold;
+  text-align: center;
+  border-right: 3px solid white;
+}
+
+.activityColumnHeader {
+  display: table-cell;
+  width: 100px;
+  padding: 1rem 0.5rem;
+  font-weight: bold;
+  text-align: center;
+  border-right: 3px solid white;
+}
+
+.notesColumnHeader {
+  display: table-cell;
+  width: 250px;
+  padding: 1rem 0.5rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.gridRows {
+  display: table-row-group;
+}
+
+.gridRow {
+  display: table-row;
+  border-bottom: 1px solid #ccc;
+}
+
+.gridRow:last-child {
+  border-bottom: none;
+}
+
+.dayCell {
+  display: table-cell;
+  height: 40px;
+  vertical-align: middle;
+  text-align: center;
+  font-weight: bold;
+  background-color: #f0f0f0;
+  border-right: 3px solid black;
+  cursor: pointer;
+}
+
+.dayCell:hover {
+  background-color: #e0e0e0;
+}
+
+.today {
+  background-color: #ffffd9;
+  font-weight: 900;
+}
+
+.activityCell {
+  display: table-cell;
+  height: 40px;
+  vertical-align: middle;
+  text-align: center;
+  border-right: 1px solid #ccc;
+}
+
+.notesCell {
+  display: table-cell;
+  padding: 0.5rem;
+  vertical-align: middle;
+  border-left: 3px solid black;
+  cursor: pointer;
+  height: auto;
+  min-height: 40px;
+}
+
+.notePreview {
+  font-size: 0.9rem;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+  max-height: 6.5em; /* 5 lines x 1.3 line-height */
+  white-space: pre-wrap;
+}
+
+.emptyNote {
+  color: #999;
+}
+
+/* Responsive date selector */
+@media (max-width: 480px) {
+  .dateSelector {
+    padding: 0.3rem;
+    border-width: 2px;
+  }
+
+  .dateNavButton {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+
+  .currentDate {
+    font-size: 1rem;
+  }
+}
+
+/* Responsive tabs */
+@media (max-width: 480px) {
+  .tabs {
+    border-bottom-width: 2px;
+  }
+
+  .tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    border-width: 2px;
+    letter-spacing: 0.5px;
+  }
+}
+
+/* Responsive activity items */
+@media (max-width: 480px) {
+  .activityItem {
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .activityLabel {
+    font-size: 1rem;
+  }
+
+  .checkboxLabel {
+    font-size: 1rem;
+    padding-left: 30px;
+  }
+
+  .checkmark {
+    height: 20px;
+    width: 20px;
+  }
+
+  .scaleInputs {
+    gap: 0.3rem;
+  }
+
+  .radioButton {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+/* Responsive buttons */
+@media (max-width: 480px) {
+  .button {
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    border-width: 2px;
+    align-self: center;
+    width: 100%;
+  }
+}
+
+/* Settings form responsive */
+@media (max-width: 480px) {
+  .formGroup {
+    margin-bottom: 1rem;
+  }
+
+  .formLabel {
+    font-size: 0.9rem;
+  }
+
+  .textInput,
+  .numberInput,
+  .select {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+    border-width: 2px;
+  }
+
+  .addActivityForm {
+    padding: 1rem;
+    border-width: 2px;
+  }
+}
+
+@media (max-width: 768px) {
+  .monthGridContainer {
+    border-width: 2px;
+  }
+
+  .dayColumnHeader,
+  .activityColumnHeader,
+  .notesColumnHeader {
+    padding: 0.8rem 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  .dayCell {
+    border-right-width: 2px;
+  }
+
+  .notesCell {
+    border-left-width: 2px;
+  }
 }
