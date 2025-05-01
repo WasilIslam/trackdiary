@@ -217,7 +217,9 @@
   }
 }
 
-button:disabled {
+.fileManager button:disabled,
+.uploadButton:disabled,
+.actionButton:disabled {
   background-color: #888 !important;
   cursor: not-allowed;
   transform: none !important;
