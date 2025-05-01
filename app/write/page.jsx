@@ -57,6 +57,9 @@ import Image from "next/image";
 // Import FileModal component
 import FileModal from "../components/FileModal";
 
+// Import FileManager component
+import FileManager from "../components/FileManager";
+
 // Register ChartJS components
 ChartJS.register(
   CategoryScale,
@@ -89,11 +92,13 @@ const WritePage = () => {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [chartType, setChartType] = useState("line"); // "line", "bar", or "pie"
 
-  // Add these new state variables
-  const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [captureMode, setCaptureMode] = useState(false); // For camera capture
+  // Simplified file state management
+  const [fileState, setFileState] = useState({
+    files: [],
+    previews: [],
+    isUploading: false,
+    selectedFiles: [],
+  });
 
   // Add these new state variables
   const [showFileModal, setShowFileModal] = useState(false);
@@ -187,9 +192,15 @@ const WritePage = () => {
   const loadEntry = async (date) => {
     try {
       setLoading(true);
-      setImagePreviews([]); // Reset image previews
-      setImageFiles([]); // Reset image files
-      setError(null); // Clear any previous errors
+      setError(null);
+      // Reset file state
+      setFileState({
+        files: [],
+        previews: [],
+        isUploading: false,
+        selectedFiles: [],
+      });
+
       const user = getCurrentUser();
 
       if (!user) {
@@ -221,10 +232,9 @@ const WritePage = () => {
           date, // Ensure date is in the correct format
         });
 
-        // Create previews for existing files
+        // Create previews for existing files with unique identifiers
         if (entryData.files && entryData.files.length > 0) {
           const previews = entryData.files.map((url, index) => {
-            // Use metadata if available, otherwise determine type from URL
             const metadata =
               entryData.fileMetadata && entryData.fileMetadata[index];
             const isImage = metadata
@@ -235,16 +245,21 @@ const WritePage = () => {
                 url.includes(".gif") ||
                 url.includes(".webp");
 
-            const name = metadata ? metadata.name : `File ${index + 1}`;
-
             return {
-              url: url,
+              url,
               type: isImage ? "image" : "document",
-              name: name,
+              name: metadata?.name || `File ${index + 1}`,
+              path: entryData.filePaths?.[index] || null,
+              metadata: metadata || null,
+              id: `existing-${index}-${Date.now()}`, // Add unique ID
+              isNew: false,
             };
           });
 
-          setImagePreviews(previews);
+          setFileState((prev) => ({
+            ...prev,
+            previews,
+          }));
         }
       } else {
         // No entry for this date
@@ -332,16 +347,16 @@ const WritePage = () => {
       let uploadedFilePaths = [];
       let fileMetadata = [];
 
-      if (imageFiles.length > 0) {
-        setUploadingImage(true);
+      if (fileState.selectedFiles.length > 0) {
+        setFileState((prev) => ({ ...prev, isUploading: true }));
 
         try {
           // Upload each file
-          for (let i = 0; i < imageFiles.length; i++) {
-            const file = imageFiles[i];
+          for (let i = 0; i < fileState.selectedFiles.length; i++) {
+            const file = fileState.selectedFiles[i];
             const fileData = await uploadImage(
               user.uid,
-              `${entry.date}_${i}`,
+              `${entry.date}_${Date.now()}_${i}`,
               file
             );
 
@@ -354,6 +369,8 @@ const WritePage = () => {
             fileMetadata.push({
               name: file.name,
               type: file.type,
+              size: file.size,
+              lastModified: file.lastModified,
               url: fileData.url,
               path: fileData.path,
             });
@@ -364,11 +381,15 @@ const WritePage = () => {
             `Failed to upload files: ${imgError.message || "Unknown error"}`
           );
           setLoading(false);
-          setUploadingImage(false);
+          setFileState((prev) => ({ ...prev, isUploading: false }));
           return;
         }
 
-        setUploadingImage(false);
+        setFileState((prev) => ({
+          ...prev,
+          isUploading: false,
+          selectedFiles: [],
+        }));
       }
 
       // Prepare entry data
@@ -419,9 +440,6 @@ const WritePage = () => {
         ...entryData,
         id: entryData.id || entry.id,
       });
-
-      // Clear file selection state but keep previews
-      setImageFiles([]);
 
       setLoading(false);
       alert("Entry saved successfully!");
@@ -957,37 +975,23 @@ const WritePage = () => {
     );
   };
 
-  // Simplify camera capture to use the device's native camera
-  const handleCameraCapture = () => {
-    // Use the file input with capture attribute to open the device camera
-    const cameraInput = document.createElement("input");
-    cameraInput.type = "file";
-    cameraInput.accept = "image/*";
-    cameraInput.capture = "environment"; // This will open the camera on mobile devices
-
-    cameraInput.onchange = (e) => {
-      handleFileSelect(e);
-    };
-
-    cameraInput.click();
-  };
-
-  // Update the handleFileSelect function to properly create previews
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
+  // Improved file handling functions
+  const handleFileSelect = (files) => {
+    if (!files || !files.length) return;
 
     // Check if adding these files would exceed the limit
-    const totalFiles = imageFiles.length + files.length;
-    if (totalFiles > 5) {
+    const totalFiles = fileState.selectedFiles.length + files.length;
+    const totalPreviews = fileState.previews.length + files.length;
+
+    if (totalPreviews > 5) {
       setError(
-        `You can only upload up to 5 files. You've selected ${totalFiles} files.`
+        `You can only upload up to 5 files. You've selected ${totalPreviews} files.`
       );
       return;
     }
 
     // Validate each file
-    const validFiles = files.filter((file) => {
+    const validFiles = Array.from(files).filter((file) => {
       // Check file type (image or common document types)
       const isImage = file.type.startsWith("image/");
       const isDocument = [
@@ -1014,44 +1018,68 @@ const WritePage = () => {
     if (!validFiles.length) return;
 
     // Add new files to state
-    setImageFiles((prev) => [...prev, ...validFiles]);
+    setFileState((prev) => ({
+      ...prev,
+      selectedFiles: [...prev.selectedFiles, ...validFiles],
+    }));
 
-    // Create previews for all files
-    validFiles.forEach((file) => {
+    // Create previews for all files with unique identifiers
+    const newPreviews = validFiles.map((file) => {
+      const uniqueId = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 9)}`;
+
       if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setImagePreviews((prev) => [
-            ...prev,
-            {
-              url: e.target.result,
-              type: "image",
-              name: file.name,
-            },
-          ]);
+        return {
+          url: URL.createObjectURL(file),
+          type: "image",
+          name: file.name,
+          isNew: true,
+          file,
+          id: uniqueId,
         };
-        reader.readAsDataURL(file);
       } else {
-        // For non-image files, just add the file name
-        setImagePreviews((prev) => [
-          ...prev,
-          {
-            url: null,
-            type: "document",
-            name: file.name,
-          },
-        ]);
+        return {
+          url: null,
+          type: "document",
+          name: file.name,
+          isNew: true,
+          file,
+          id: uniqueId,
+        };
       }
     });
+
+    setFileState((prev) => ({
+      ...prev,
+      previews: [...prev.previews, ...newPreviews],
+    }));
   };
 
-  // Function to remove a file
   const handleRemoveFile = (index) => {
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    // Check if it's a new file or an existing one
+    const preview = fileState.previews[index];
+
+    if (preview.isNew) {
+      // For new files, remove from both selectedFiles and previews
+      const fileToRemove = preview.file;
+
+      setFileState((prev) => ({
+        ...prev,
+        selectedFiles: prev.selectedFiles.filter((f) => f !== fileToRemove),
+        previews: prev.previews.filter((_, i) => i !== index),
+      }));
+
+      // Revoke object URL to prevent memory leaks
+      if (preview.url && preview.type === "image") {
+        URL.revokeObjectURL(preview.url);
+      }
+    } else {
+      // For existing files, we'll handle deletion in a separate function
+      handleDeleteFile(index);
+    }
   };
 
-  // Function to handle file deletion
   const handleDeleteFile = async (index) => {
     const user = getCurrentUser();
     if (!user) {
@@ -1059,8 +1087,8 @@ const WritePage = () => {
       return;
     }
 
-    if (!entry.files || !entry.files[index]) {
-      setError("No file to delete");
+    if (!entry.id) {
+      setError("Cannot delete files from an unsaved entry");
       return;
     }
 
@@ -1069,16 +1097,25 @@ const WritePage = () => {
     }
 
     try {
-      setUploadingImage(true);
+      setFileState((prev) => ({ ...prev, isUploading: true }));
       setError(null);
 
-      // Delete the file from Firebase Storage if path exists
-      if (entry.filePaths && entry.filePaths[index]) {
-        await deleteImage(entry.filePaths[index]);
+      // Get the file path if it exists
+      const filePath = entry.filePaths && entry.filePaths[index];
+
+      // Try to delete the file from Firebase Storage if path exists
+      if (filePath) {
+        try {
+          await deleteImage(filePath);
+        } catch (storageError) {
+          // Log the error but continue with database update
+          console.warn("Could not delete file from storage:", storageError);
+          // We'll still remove it from the database
+        }
       }
 
       // Remove the file from arrays
-      const updatedFiles = [...entry.files];
+      const updatedFiles = [...(entry.files || [])];
       updatedFiles.splice(index, 1);
 
       const updatedPaths = [...(entry.filePaths || [])];
@@ -1086,10 +1123,16 @@ const WritePage = () => {
         updatedPaths.splice(index, 1);
       }
 
+      const updatedMetadata = [...(entry.fileMetadata || [])];
+      if (updatedMetadata.length > index) {
+        updatedMetadata.splice(index, 1);
+      }
+
       // Update the entry in Firestore
       await updateDoc(doc(db, `users/${user.uid}/entries`, entry.id), {
         files: updatedFiles,
         filePaths: updatedPaths,
+        fileMetadata: updatedMetadata,
         updatedAt: serverTimestamp(),
       });
 
@@ -1098,29 +1141,70 @@ const WritePage = () => {
         ...entry,
         files: updatedFiles,
         filePaths: updatedPaths,
+        fileMetadata: updatedMetadata,
       });
 
       // Update previews
-      setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+      setFileState((prev) => ({
+        ...prev,
+        previews: prev.previews.filter((_, i) => i !== index),
+        isUploading: false,
+      }));
 
-      setUploadingImage(false);
       alert("File deleted successfully!");
     } catch (err) {
       console.error("Error deleting file:", err);
       setError(`Failed to delete file: ${err.message || "Unknown error"}`);
-      setUploadingImage(false);
+      setFileState((prev) => ({ ...prev, isUploading: false }));
     }
   };
 
-  // Add a function to handle file downloads
+  // Improved download function
   const handleDownloadFile = (url, fileName) => {
-    // Create a temporary anchor element
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName || "download";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName || "download";
+      a.target = "_blank"; // Open in new tab if download fails
+      document.body.appendChild(a);
+      a.click();
+
+      // Small delay before removing the element
+      setTimeout(() => {
+        document.body.removeChild(a);
+      }, 100);
+    } catch (error) {
+      console.error("Download error:", error);
+      setError(
+        "Failed to download file. Try right-clicking and selecting 'Save link as'."
+      );
+
+      // Fallback: open in new tab
+      window.open(url, "_blank");
+    }
+  };
+
+  // Improved camera capture function
+  const handleCameraCapture = () => {
+    try {
+      const cameraInput = document.createElement("input");
+      cameraInput.type = "file";
+      cameraInput.accept = "image/*";
+      cameraInput.capture = "environment"; // This will open the camera on mobile devices
+
+      cameraInput.onchange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleFileSelect(Array.from(e.target.files));
+        }
+      };
+
+      cameraInput.click();
+    } catch (error) {
+      console.error("Camera error:", error);
+      setError(
+        "Failed to access camera. Please check your device permissions."
+      );
+    }
   };
 
   // Add this function to load all entries with files
@@ -1168,13 +1252,13 @@ const WritePage = () => {
   // Add this function to handle file deletion from the modal
   const handleDeleteFileFromModal = async (entryId, fileIndex) => {
     try {
-      setUploadingImage(true);
+      setFileState((prev) => ({ ...prev, isUploading: true }));
       setError(null);
 
       const user = getCurrentUser();
       if (!user) {
         setError("Please sign in to delete files");
-        setUploadingImage(false);
+        setFileState((prev) => ({ ...prev, isUploading: false }));
         return;
       }
 
@@ -1182,7 +1266,7 @@ const WritePage = () => {
       const entryToUpdate = allEntries.find((entry) => entry.id === entryId);
       if (!entryToUpdate) {
         setError("Entry not found");
-        setUploadingImage(false);
+        setFileState((prev) => ({ ...prev, isUploading: false }));
         return;
       }
 
@@ -1238,21 +1322,37 @@ const WritePage = () => {
         });
 
         // Update previews if we're viewing this entry
-        setImagePreviews((prev) => prev.filter((_, i) => i !== fileIndex));
+        setFileState((prev) => ({
+          ...prev,
+          previews: prev.previews.filter((_, i) => i !== fileIndex),
+          isUploading: false,
+        }));
       }
 
-      setUploadingImage(false);
+      setFileState((prev) => ({ ...prev, isUploading: false }));
       alert("File deleted successfully!");
     } catch (err) {
       console.error("Error deleting file:", err);
       setError(`Failed to delete file: ${err.message || "Unknown error"}`);
-      setUploadingImage(false);
+      setFileState((prev) => ({ ...prev, isUploading: false }));
     }
+  };
+
+  // Render loading state
+  const renderLoading = () => {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingText}>Loading diary...</div>
+      </div>
+    );
   };
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+      <div className={styles.card} style={{ position: "relative" }}>
+        {/* Show loading indicator when needed, but don't hide content */}
+        {(loading || fileState.isUploading) && renderLoading()}
+
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${
@@ -1355,104 +1455,31 @@ const WritePage = () => {
                   />
                 </div>
 
-                {/* Simplified files section with download option */}
+                {/* Replace the files section with the FileManager component */}
                 <div className={styles.filesSection}>
                   <h2 className={styles.sectionTitle}>FILES & IMAGES</h2>
 
-                  {error && <div className={styles.errorMessage}>{error}</div>}
-
-                  {/* Display existing files */}
-                  {imagePreviews.length > 0 && (
-                    <div className={styles.filesList}>
-                      {imagePreviews.map((preview, index) => (
-                        <div key={index} className={styles.fileItem}>
-                          {preview.type === "image" ? (
-                            <div className={styles.imagePreviewContainer}>
-                              <img
-                                src={preview.url}
-                                alt={`File ${index + 1}`}
-                                className={styles.imagePreview}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = "/placeholder-image.png";
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div className={styles.documentPreview}>
-                              {preview.name}
-                            </div>
-                          )}
-
-                          <div className={styles.fileActions}>
-                            <button
-                              className={styles.downloadButton}
-                              onClick={() =>
-                                handleDownloadFile(preview.url, preview.name)
-                              }
-                            >
-                              Download
-                            </button>
-
-                            <button
-                              className={styles.deleteButton}
-                              onClick={() =>
-                                entry.files && entry.files[index]
-                                  ? handleDeleteFile(index)
-                                  : handleRemoveFile(index)
-                              }
-                              disabled={uploadingImage || loading}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* File upload controls */}
-                  {imagePreviews.length < 5 && (
-                    <div className={styles.fileUploadControls}>
-                      <button
-                        className={`${styles.button} ${styles.uploadButton}`}
-                        onClick={() =>
-                          document.getElementById("file-upload").click()
-                        }
-                      >
-                        Add File
-                      </button>
-
-                      <button
-                        className={`${styles.button} ${styles.uploadButton}`}
-                        onClick={handleCameraCapture}
-                      >
-                        Take Photo
-                      </button>
-
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                        onChange={handleFileSelect}
-                        className={styles.fileInput}
-                        id="file-upload"
-                        multiple
-                      />
-                    </div>
-                  )}
-
-                  {/* File counter */}
-                  <div className={styles.fileCounter}>
-                    {imagePreviews.length} of 5 files added
-                  </div>
+                  <FileManager
+                    previews={fileState.previews}
+                    onFileSelect={handleFileSelect}
+                    onRemoveFile={handleRemoveFile}
+                    onDownloadFile={handleDownloadFile}
+                    onCameraCapture={handleCameraCapture}
+                    isUploading={fileState.isUploading}
+                    isLoading={loading}
+                    error={error}
+                    maxFiles={5}
+                  />
                 </div>
 
                 <button
                   className={styles.button}
                   onClick={handleSaveEntry}
-                  disabled={loading || uploadingImage}
+                  disabled={loading || fileState.isUploading}
                 >
-                  {loading || uploadingImage ? "SAVING..." : "SAVE ENTRY"}
+                  {loading || fileState.isUploading
+                    ? "SAVING..."
+                    : "SAVE ENTRY"}
                 </button>
               </>
             ) : (
@@ -1632,7 +1659,7 @@ const WritePage = () => {
         entries={allEntries}
         onDownload={handleDownloadFile}
         onDelete={handleDeleteFileFromModal}
-        loading={loading || uploadingImage}
+        loading={loading || fileState.isUploading}
       />
     </div>
   );

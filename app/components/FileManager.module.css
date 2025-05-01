@@ -1,0 +1,322 @@
+.fileManager {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.errorMessage {
+  background-color: #ff4d4d;
+  color: white;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 2px solid black;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.filesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fileItem {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid black;
+  overflow: hidden;
+  background-color: #f9f9f9;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.9);
+  transition: transform 0.1s, box-shadow 0.1s;
+  height: 180px;
+}
+
+.fileItem:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.9);
+}
+
+.imagePreviewContainer {
+  width: 100%;
+  height: 120px;
+  position: relative;
+  background-color: #f0f0f0;
+  border-bottom: 2px solid black;
+  cursor: pointer;
+}
+
+.imagePreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.documentPreview {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid black;
+  height: 120px;
+}
+
+.documentIcon {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+.documentName {
+  font-size: 12px;
+  word-break: break-all;
+  font-weight: bold;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.fileActions {
+  display: flex;
+  background-color: #fff;
+  flex: 1;
+}
+
+.actionButton {
+  padding: 0.4rem;
+  font-weight: bold;
+  font-size: 0.65rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  transition: background-color 0.2s;
+  flex: 1;
+  border-right: 1px solid black;
+}
+
+.actionButton:last-child {
+  border-right: none;
+}
+
+.openButton {
+  background-color: #2196f3;
+  color: white;
+}
+
+.openButton:hover {
+  background-color: #0d8bf2;
+}
+
+.downloadButton {
+  background-color: black;
+  color: white;
+}
+
+.downloadButton:hover {
+  background-color: #333;
+}
+
+.deleteButton {
+  background-color: #ff4d4d;
+  color: white;
+}
+
+.deleteButton:hover {
+  background-color: #ff3333;
+}
+
+.fileUploadControls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.uploadButton {
+  background-color: black;
+  color: white;
+  border: 2px solid black;
+  padding: 0.6rem 1rem;
+  font-weight: bold;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex: 1;
+}
+
+.uploadButton:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.8);
+}
+
+.uploadButton:active {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileCounter {
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.uploadingIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 0.75rem;
+  border: 2px solid black;
+  background-color: #f9f9f9;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  border-top-color: black;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.loadingText {
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+button:disabled {
+  background-color: #888 !important;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Modal styles */
+.imageModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  max-width: 90%;
+  max-height: 90%;
+  position: relative;
+}
+
+.modalImage {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border: 3px solid white;
+}
+
+.closeButton {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background-color: white;
+  color: black;
+  border: 2px solid black;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .filesList {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .fileItem {
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.9);
+    height: 160px;
+  }
+
+  .imagePreviewContainer {
+    height: 100px;
+  }
+
+  .documentPreview {
+    height: 100px;
+    padding: 8px;
+  }
+
+  .actionButton {
+    padding: 0.35rem;
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .filesList {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .fileItem {
+    border-width: 1px;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.9);
+    height: 140px;
+  }
+
+  .imagePreviewContainer,
+  .documentPreview {
+    border-bottom-width: 1px;
+    height: 80px;
+  }
+
+  .documentName {
+    font-size: 10px;
+  }
+
+  .actionButton {
+    padding: 0.3rem;
+    font-size: 0.55rem;
+    border-width: 1px;
+  }
+}
